@@ -7,17 +7,38 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 import os
 import argparse
-
+import logging
 
 
 cuda = torch.device('cuda:0')
 root_dir = '../'
 splits_path = 'preprocessed_data'
 saved_path = os.path.join(root_dir,"saved_model")
+log_path = os.path.join(root_dir,"logs")
+log_file = os.path.join(log_path,"training_logs.log")
 
-def main(epochs,lr,samples,batch_size):
-    mytraindata = MyDataset(root_dir, splits_path, 0, "train",samples=samples)
-    myvalidatedata =  MyDataset(root_dir, splits_path, 0, "validate",samples=samples)
+def get_logger(filename, verbosity=1, name=None):
+    level_dict = {0: logging.DEBUG, 1: logging.INFO, 2: logging.WARNING}
+    formatter = logging.Formatter(
+        "[%(asctime)s][%(filename)s][%(levelname)s] %(message)s"
+    )
+    logger = logging.getLogger(name)
+    logger.setLevel(level_dict[verbosity])
+
+    fh = logging.FileHandler(filename, "w")
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+
+    return logger
+
+def main(epochs,lr,samples,batch_size,selected_num):
+    logger = get_logger(log_file)
+    mytraindata = MyDataset(root_dir,splits_path, selected_num, "train",samples=samples)
+    myvalidatedata = MyDataset(root_dir,splits_path,selected_num, "validate",samples=samples)
     mynn = AudioAlexNet().to(cuda)
     loss = CrossEntropyLoss().to(cuda)
     optim = Adam(mynn.parameters(),lr=lr)
@@ -50,34 +71,36 @@ def main(epochs,lr,samples,batch_size):
                 correct_num = sum(targets.eq(output.argmax(dim=1)))
                 total_correct+=correct_num
         accuracy =  total_correct/total_len     
-        print("validate accuracy: ",accuracy.item())        
-        print("epoch training loss: ",running_loss.item())
-        print("epoch validation loss:",validation_loss.item())
+        logger.info('Epoch:[{}/{}]\t validation_loss={:.5f}\t training_loss = {:.5f}\t acc={:.5f}'.format(epoch , epochs, validation_loss.item(),running_loss.item(), accuracy.item() ))
         if (epoch%10) == 0:
             filename = "model_epoch"+str(epoch)+".pth"
             filename = os.path.join(saved_path,filename)
-            torch.save(mynn.state_dict(),filename)
+            torch.save(mynn,filename)
             print("model saved in epoch: ",epoch)
         else:
             pass
-    final_path =  os.path.join(saved_path,"final_epcoh.pth")
+    final_path =  os.path.join(saved_path,"final_epoch.pth")
     torch.save(mynn, final_path)
     
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("training")
-    parser.add_argument("--epochs",type=int,default=200,help="training epochs")
+    parser.add_argument("--epochs",type=int,default=150,help="training epochs")
     parser.add_argument("--lr",type=float,default=0.001,help="learning rate")
     parser.add_argument("--samples",type=int,default=2048,help="samples being used from training data")
     parser.add_argument("--batch_size",type=int,default=256,help="batch size")
+    parser.add_argument("--selected_num",type=int,default=0,help="which of the testing sample to use, from 0-4 ")
+
     args = parser.parse_args()
     
     epochs = args.epochs
     lr = args.lr
     samples = args.samples
     batch_size = args.batch_size
+    selected_num = args.selected_num
     print("start training...")
-    main(epochs,lr,samples,batch_size)
+    
+    main(epochs,lr,samples,batch_size,selected_num)
     
     print("training is over...")
     

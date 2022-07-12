@@ -2,7 +2,9 @@ from torch.utils.data import DataLoader
 from dataset import MyDataset
 import torch
 import torch.nn as nn
-from Alexnet import AudioAlexNet
+from Alexnet import AudioAlexNet_digit
+from Alexnet import AudioAlexNet_gender
+
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 import os
@@ -46,7 +48,11 @@ def main(epochs,lr,samples,batch_size,selected_num,pre_trained,log_file_name,tas
         pre_trained_model_path = os.path.join(pre_trained_path,task,pre_trained)
         mynn=torch.load(pre_trained_model_path)
     else:
-        mynn = AudioAlexNet(task).to(cuda)
+        if task == "digit":
+            mynn = AudioAlexNet_digit().to(cuda)
+        else:
+            mynn = AudioAlexNet_gender().to(cuda)
+            
     if task == "digit":
         loss = CrossEntropyLoss().to(cuda)
     else:

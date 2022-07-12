@@ -2,7 +2,8 @@ from torch.utils.data import DataLoader
 from dataset import MyDataset
 import torch
 import torch.nn as nn
-from Alexnet import AudioAlexNet
+from Alexnet import AudioAlexNet_digit
+from Alexnet import AudioAlexNet_gender
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 import os

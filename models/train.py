@@ -8,6 +8,7 @@ from torch.optim import Adam
 import os
 import argparse
 import logging
+from torch.nn import BCELoss
 
 
 cuda = torch.device('cuda:0')
@@ -15,7 +16,6 @@ root_dir = '../'
 splits_path = 'preprocessed_data'
 saved_path = os.path.join(root_dir,"saved_model")
 log_path = os.path.join(root_dir,"logs")
-log_file = os.path.join(log_path,"training_logs.log")
 pre_trained_path = os.path.join(root_dir,"pre_trained_model")
 
 def get_logger(filename, verbosity=1, name=None):
@@ -36,17 +36,21 @@ def get_logger(filename, verbosity=1, name=None):
 
     return logger
 
-def main(epochs,lr,samples,batch_size,selected_num,pre_trained=None):
+def main(epochs,lr,samples,batch_size,selected_num,pre_trained,log_file_name,task):
+    log_file = os.path.join(log_path,log_file_name)
     logger = get_logger(log_file)
-    mytraindata = MyDataset(root_dir,splits_path, selected_num, "train",samples=samples)
-    myvalidatedata = MyDataset(root_dir,splits_path,selected_num, "validate",samples=samples)
+    mytraindata = MyDataset(root_dir,splits_path, selected_num, "train",samples=samples,task=task)
+    myvalidatedata = MyDataset(root_dir,splits_path,selected_num, "validate",samples=samples,task=task)
     if pre_trained:
         print("loading pre_trained model: ",pre_trained)
-        pre_trained_model_path = os.path.join(pre_trained_path,pre_trained)
+        pre_trained_model_path = os.path.join(pre_trained_path,task,pre_trained)
         mynn=torch.load(pre_trained_model_path)
     else:
-        mynn = AudioAlexNet().to(cuda)
-    loss = CrossEntropyLoss().to(cuda)
+        mynn = AudioAlexNet(task).to(cuda)
+    if task == "digit":
+        loss = CrossEntropyLoss().to(cuda)
+    else:
+        loss = BCELoss().to(cuda)
     optim = Adam(mynn.parameters(),lr=lr)
     train_loader = DataLoader(mytraindata, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=False)
     validate_loader = DataLoader(myvalidatedata, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=False)
@@ -63,6 +67,9 @@ def main(epochs,lr,samples,batch_size,selected_num,pre_trained=None):
             imgs, targets = data
             imgs, targets = imgs.to(cuda),targets.to(cuda)
             output = mynn(imgs)
+            if task=="gender":
+                targets= targets.reshape(-1,1)
+                targets = targets.to(torch.float32)
             result = loss(output,targets)
             result.backward()
             optim.step()
@@ -73,18 +80,26 @@ def main(epochs,lr,samples,batch_size,selected_num,pre_trained=None):
                 imgs,targets = data
                 imgs, targets = imgs.to(cuda),targets.to(cuda)
                 output = mynn(imgs)
+                if task=="gender":
+                    targets = targets.reshape(-1,1)
+                    targets = targets.to(torch.float32)
                 result = loss(output,targets)
                 validation_loss += result
-                correct_num = sum(targets.eq(output.argmax(dim=1)))
+                if task=="gender":
+                    correct_num = sum(targets.eq(output.round()))
+                else:    
+                    correct_num = sum(targets.eq(output.argmax(dim=1)))
                 total_correct+=correct_num
+        
         accuracy =  total_correct/total_len   
+        logger.info('Epoch:[{}/{}]\t validation_loss={:.5f}\t training_loss = {:.5f}\t acc={:.5f}'.format(epoch , epochs, validation_loss.item(),running_loss.item(), accuracy.item() ))
         if accuracy> best_acc:
             best_acc = accuracy
             best_name = "best_acc.pth"
             best_name_path = os.path.join(saved_path,best_name)
             torch.save(mynn,best_name_path)
             print("best accuracy model saved in epoch: ",epoch)            
-        logger.info('Epoch:[{}/{}]\t validation_loss={:.5f}\t training_loss = {:.5f}\t acc={:.5f}'.format(epoch , epochs, validation_loss.item(),running_loss.item(), accuracy.item() ))
+        
         if (epoch%10) == 0:
             filename = "model_epoch"+str(epoch)+".pth"
             filename = os.path.join(saved_path,filename)
@@ -104,6 +119,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size",type=int,default=256,help="batch size")
     parser.add_argument("--selected_num",type=int,default=0,help="which of the testing sample to use, from 0-4 ")
     parser.add_argument("--pre_trained",type=str,default=None,help="pre_trained_model")
+    parser.add_argument("--log_file_name",type=str,default="training_log.log",help="log file name")
+    parser.add_argument("--task",type=str,default="digit",help="digit or gender")
 
     args = parser.parse_args()
     
@@ -113,9 +130,11 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     selected_num = args.selected_num
     pre_trained = args.pre_trained
+    log_file_name = args.log_file_name
+    task = args.task
     print("start training...")
     
-    main(epochs,lr,samples,batch_size,selected_num,pre_trained)
+    main(epochs,lr,samples,batch_size,selected_num,pre_trained,log_file_name,task)
     
     print("training is over...")
     

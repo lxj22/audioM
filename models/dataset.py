@@ -6,7 +6,8 @@ import torch
 import random
 
 class MyDataset(Dataset):
-    def __init__(self,root_dir,splits_path,selected_number,mode,samples,transform=None):
+    def __init__(self,root_dir,splits_path,selected_number,mode,samples,transform=None,task="digit"):
+        self.task = task
         self.root_dir = root_dir
         self.splits_path = splits_path
         self.selected_number = selected_number
@@ -18,6 +19,7 @@ class MyDataset(Dataset):
             for path in f:
                 self.path_list.append(path.rstrip("\n"))
         self.path_list = random.sample(self.path_list,samples)
+        self.task = task
 
     def __getitem__(self, idx):
 
@@ -30,7 +32,11 @@ class MyDataset(Dataset):
         img_max = img.max()
         img_scale = img_max-img_min
         img_scaled = (img+img_scale)/img_scale
-        label = img_file["label"][0][0]
+        if self.task=="digit":
+            label = img_file["label"][0][0]
+        else:
+            #task=gender
+            label = img_file["label"][0][1]
         label = torch.tensor(label,dtype=torch.int64)
         if self.transform:
             img_scaled = self.transform(img_scaled)

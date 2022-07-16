@@ -4,7 +4,9 @@
 
 #### please install all the packages in the requirement.txt
 
-### Dataset
+[@toc]
+
+### 1.Dataset
 The dataset consists of 30000 audio samples of spoken digits (0-9) of 60 different speakers. The raw aduio data can be donloaded in(https://github.com/soerenab/AudioMNIST/tree/master/data). The data will be stored in folder "data"
 
 There is one directory per speaker holding the audio recordings. 
@@ -13,14 +15,14 @@ Additionally "audioMNIST_meta.txt" provides meta information such as gender or a
 
 ---
 
-### 1.preprocessing 
+### 2.preprocessing 
 
 The data after transformation will be splited into different file folders based on its classification task such as "digit" or "gender". The processed data will be stored in the folder "preprocessed_data" and in hdf5 format. The name of the file is "AlexNet_{speaker}_{digit}_{sample}.hdf5"). The shape of processed data is [1, 1, 227, 227]. The processed data is a spectrogram and will be used in the AlexNet model.
 
 ![spectrogram](/pics/spectrogram.png)
 
 ---
-### 2.training
+### 3.training
 #### Models
 *AlexNet* will be used in the classification task. The model is stored in the folder "models". 
 
@@ -46,7 +48,7 @@ Some arguments:
 Run file train such as "python train.py --log_file_name="digit_task_log.log" task="digit" "
 
 
-### 3.testing
+### 4.testing
 Run file **test.py** in the folder "models" to test the pretrained models on testset.
 
 Some arguments:
@@ -63,20 +65,20 @@ Some arguments:
     
 
 
-### 4. LRP(layerwiser relevance propagation)
+### 5. LRP(layerwiser relevance propagation)
 
 Please run file **"lrp.ipynb"** to see the relevance map of spectrogram. The left part is the LRP map and the right part is spectrogram. The dark red implies a high relevance to the final classification.
 
 ![lrp](/pics/lrp.png)
 
 
-### 5. Visualiztion of log file
+### 6. Visualiztion of log file
 
 Please run file "data_visualization.py" to change the log file into line graph.
 
 ![line](/pics/line.jpg)
 
-### reference:
+### 7.reference:
 
 https://github.com/deepfindr/xai-series
 

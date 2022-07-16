@@ -71,6 +71,7 @@ Please run file **"lrp.ipynb"** to see the relevance map of spectrogram.
 
 Please run file "data_visualization.py" to change the log file into line graph.
 
+![line](/pics/line.png)
 
 ### reference:
 

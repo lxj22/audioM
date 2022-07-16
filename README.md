@@ -65,7 +65,10 @@ Some arguments:
 
 ### 4. LRP(layerwiser relevance propagation)
 
-Please run file **"lrp.ipynb"** to see the relevance map of spectrogram.
+Please run file **"lrp.ipynb"** to see the relevance map of spectrogram. The left part is the LRP map and the right part is spectrogram. The dark red implies a high relevance to the final classification.
+
+![lrp](/pics/lrp.png)
+
 
 ### 5. Visualiztion of log file
 
